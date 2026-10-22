@@ -6,7 +6,8 @@ import { useLang, LangSwitch } from '../lib/i18n';
 export default function Landing() {
   const L = useLang(); const { t } = L;
   const F = [['🕘', 'f1'], ['💰', 'f2'], ['📊', 'f3'], ['🧑‍🔧', 'f4'], ['📱', 'f5'], ['🔒', 'f6']];
-  const SOON = [['📦', 'godown', 'godownSub'], ['🚚', 'gate', 'gateSub'], ['⚙️', 'machines', 'machinesSub'], ['🤝', 'help', 'helpFamily']];
+  const LIVE = [['📦', 'stock', 'godownSub'], ['🚚', 'gate', 'gateSub'], ['⚙️', 'machines', 'machinesSub'], ['🎤', 'voice', 'pasteExcel']];
+  const SOON = [['🤝', 'help', 'helpFamily']];
   return (
     <main>
       <header className="lp-top"><div className="lp-w"><Brand light /><nav style={{ display: 'flex', gap: 8, alignItems: 'center' }}><LangSwitch {...L} /><Link href="/login" className="btn btn-ghost btn-sm">{t('login')}</Link></nav></div></header>
@@ -21,7 +22,7 @@ export default function Landing() {
         {[['1', 'owner', 'fl1'], ['2', 'supervisor', 'fl2'], ['3', 'worker', 'fl3']].map(([n, a, b], i) => (
           <div key={n} className="lp-fl"><b>{n}</b><div><strong>{t(a)}</strong><span>{t(b)}</span></div>{i < 2 ? <i aria-hidden="true">→</i> : null}</div>))}
       </section>
-      <section className="lp-w lp-grid">{F.map(([i, k]) => <div key={k} className="card lp-f"><span className="lp-i">{i}</span><b>{t(k + 't')}</b><p>{t(k + 'd')}</p></div>)}</section>
+      <section className="lp-w lp-grid">{LIVE.map(([i, a, b]) => <div key={a} className="card lp-f"><span className="lp-i">{i}</span><b>{t(a)}</b><p>{a === 'voice' ? '🎤 ' + t('voice') + ' · 📋 ' + t('pasteExcel') + ' · 📷 ' + t('scan') + ' · 🏷️ QR' : t(b)}</p></div>)}{F.map(([i, k]) => <div key={k} className="card lp-f"><span className="lp-i">{i}</span><b>{t(k + 't')}</b><p>{t(k + 'd')}</p></div>)}</section>
       <section className="lp-w"><h2 className="lp-h2">{t('soonH')}</h2>
         <div className="lp-grid">{SOON.map(([i, a, b]) => <div key={a} className="card lp-f soon"><span className="lp-i">{i}</span><b>{t(a)}</b><p>{t(b)}</p><span className="tag t-amb">{t('soon')}</span></div>)}</div></section>
       <footer className="lp-w lp-foot"><Brand /><span className="muted">🌍 {t('lpFoot')}</span></footer>

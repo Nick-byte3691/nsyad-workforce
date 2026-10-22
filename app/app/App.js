@@ -4,6 +4,7 @@ import { Brand } from '../Brand';
 import { useLang, LangSwitch } from '../../lib/i18n';
 import { monthOf } from '../../lib/calc';
 import { money } from '../../lib/world';
+import { Stock, Gate, Machines, DataCard } from './Ops';
 // Company settings (currency, today's date in the company's time zone) arrive with the first load.
 let CUR = 'INR', TODAY = '', LOC = 'en';
 const inr = (n) => money(n, CUR);
@@ -14,14 +15,17 @@ const post = async (body) => { const r = await fetch('/api/ks', { method: 'POST'
 const dayLabel = (d) => { try { return new Date(d + 'T12:00:00Z').toLocaleDateString(LOC, { day: 'numeric', month: 'short', timeZone: 'UTC' }); } catch { return d; } };
 const shift = (d, n) => { const t = new Date(d + 'T12:00:00Z'); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); };
 
-const TABS = [['dash', '📊'], ['att', '🕘'], ['workers', '👷'], ['pay', '💰'], ['team', '🏗️']];
+const TABS = [['dash', '📊'], ['att', '🕘'], ['workers', '👷'], ['pay', '💰'], ['stock', '📦'], ['gate', '🚚'], ['machines', '⚙️'], ['team', '🏗️']];
+const BOTTOM = ['dash', 'att', 'stock', 'gate']; // phone: the rest is under ☰ More
 
 export default function App() {
   const L = useLang(); const { t, lang, locale } = L; const hi = lang === 'hi'; LOC = locale;
   const [tab, setTab] = useState('dash');
-  const [base, setBase] = useState(null);
-  useEffect(() => { const h = window.location.hash.slice(1); if (TABS.some(([k]) => k === h)) setTab(h); get('view=base').then((b) => { if (b) { CUR = (b.co && b.co.currency) || 'INR'; TODAY = b.today || ''; } setBase(b); }).catch(() => {}); }, []);
-  const go = (k) => { setTab(k); window.history.replaceState(null, '', '#' + k); window.scrollTo(0, 0); };
+  const [base, setBase] = useState(null); const [more, setMore] = useState(false); const [passTok, setPassTok] = useState('');
+  useEffect(() => { const h = window.location.hash.slice(1); if (TABS.some(([k]) => k === h)) setTab(h);
+    // A printed gate pass QR opens /app?pass=… → straight to that pass.
+    const pt = new URLSearchParams(window.location.search).get('pass'); if (pt && /^[a-f0-9]{24}$/.test(pt)) { setPassTok(pt); setTab('gate'); window.history.replaceState(null, '', '/app#gate'); } get('view=base').then((b) => { if (b) { CUR = (b.co && b.co.currency) || 'INR'; TODAY = b.today || ''; } setBase(b); }).catch(() => {}); }, []);
+  const go = (k) => { setTab(k); setMore(false); window.history.replaceState(null, '', '#' + k); window.scrollTo(0, 0); };
   const owner = base && base.me.role === 'owner';
   const tabs = TABS.filter(([k]) => k !== 'team' || owner);
   const logout = async () => { await fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"action":"logout"}' }); window.location.href = '/login'; };
@@ -30,14 +34,16 @@ export default function App() {
       <aside className="ap-side">
         <div className="ap-brand"><Brand light /></div>
         <nav>{tabs.map(([k, i]) => <button key={k} type="button" className={tab === k ? 'on' : ''} onClick={() => go(k)}><span>{i}</span>{t(k)}</button>)}</nav>
-        <div className="ap-soon"><small>{t('more')}</small>{[['📦', 'godown'], ['🚚', 'gate'], ['⚙️', 'machines']].map(([i, k]) => <span key={k}>{i} {t(k)} <em>{t('soon')}</em></span>)}</div>
+        <div className="ap-soon"><small>{t('more')}</small><span>🤝 {t('help')} <em>{t('soon')}</em></span></div>
         <div className="ap-me">{base ? <><b>{base.me.name}</b><small>{t(base.me.role)}</small></> : null}<div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}><LangSwitch {...L} /><button type="button" className="ap-out" onClick={logout}>{t('logout')}</button></div></div>
       </aside>
       <header className="ap-mtop"><Brand light /><div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><LangSwitch {...L} /><button type="button" className="ap-out" onClick={logout}>{t('logout')}</button></div></header>
       <main className="ap-main">
-        {!base ? <p className="muted">{t('loading')}</p> : tab === 'dash' ? <Dash t={t} hi={hi} go={go} owner={owner} /> : tab === 'att' ? <Att t={t} hi={hi} /> : tab === 'workers' ? <Workers t={t} hi={hi} owner={owner} /> : tab === 'pay' ? <Pay t={t} hi={hi} owner={owner} /> : <Team t={t} hi={hi} />}
+        {!base ? <p className="muted">{t('loading')}</p> : tab === 'dash' ? <Dash t={t} hi={hi} go={go} owner={owner} /> : tab === 'att' ? <Att t={t} hi={hi} /> : tab === 'workers' ? <Workers t={t} hi={hi} owner={owner} /> : tab === 'pay' ? <Pay t={t} hi={hi} owner={owner} /> : tab === 'stock' ? <Stock t={t} lang={lang} co={base.co} /> : tab === 'gate' ? <Gate t={t} lang={lang} co={base.co} openToken={passTok} /> : tab === 'machines' ? <Machines t={t} lang={lang} co={base.co} /> : <Team t={t} hi={hi} co={base.co} />}
       </main>
-      <nav className="ap-bot">{tabs.map(([k, i]) => <button key={k} type="button" className={tab === k ? 'on' : ''} onClick={() => go(k)}><span>{i}</span><small>{t(k)}</small></button>)}</nav>
+      <nav className="ap-bot">{tabs.filter(([k]) => BOTTOM.includes(k)).map(([k, i]) => <button key={k} type="button" className={tab === k ? 'on' : ''} onClick={() => go(k)}><span>{i}</span><small>{t(k)}</small></button>)}
+        <button type="button" className={!BOTTOM.includes(tab) || more ? 'on' : ''} onClick={() => setMore(!more)}><span>☰</span><small>{t('more')}</small></button></nav>
+      {more ? <div className="more-bg" onClick={() => setMore(false)}><div className="more" onClick={(e) => e.stopPropagation()}>{tabs.filter(([k]) => !BOTTOM.includes(k)).map(([k, i]) => <button key={k} type="button" className={tab === k ? 'on' : ''} onClick={() => go(k)}><span>{i}</span>{t(k)}</button>)}</div></div> : null}
       <style>{CSS}</style>
     </div>
   );
@@ -53,6 +59,8 @@ function useLoad(q) {
 // ---------- Dashboard ----------
 function Dash({ t, hi, go, owner }) {
   const [d, , err] = useLoad('view=dash');
+  const [ops, setOps] = useState(null);
+  useEffect(() => { fetch('/api/ops?view=summary', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then(setOps).catch(() => {}); }, []);
   if (err) return <p className="err">{err}</p>;
   if (!d) return <p className="muted">{t('loading')}</p>;
   const max = Math.max(1, ...d.days.map((x) => x.p + x.h + x.a));
@@ -84,7 +92,12 @@ function Dash({ t, hi, go, owner }) {
             <span className="snum"><b className="ok">{s.p}</b>/{s.workers}</span></div>)) : <p className="muted">{t('noSites')}</p>}
       </section>
     </div>
-    <section className="soon-row">{[['📦', 'godown', t('godownSub')], ['🚚', 'gate', t('gateSub')], ['⚙️', 'machines', t('machinesSub')], ['🤝', 'help', t('helpFamily')]].map(([i, k, s]) => <div key={k} className="card soon"><span>{i}</span><b>{t(k)}</b><small className="muted">{s}</small><em className="tag t-amb">{t('soon')}</em></div>)}</section>
+    {ops ? <section className="soon-row">
+      <button type="button" className={'card soon live' + (ops.low ? ' warn' : '')} onClick={() => go('stock')}><span>📦</span><b>{t('stock')}</b><small className="muted">{ops.items} {t('items')}</small>{ops.low ? <em className="tag t-a">⚠️ {t('lowN', { n: ops.low })}</em> : null}</button>
+      <button type="button" className={'card soon live' + (ops.notBack ? ' warn' : '')} onClick={() => go('gate')}><span>🚚</span><b>{t('gate')}</b><small className="muted">{t('passesOpen')}: {ops.passesOpen}</small>{ops.notBack ? <em className="tag t-a">⏰ {t('notBackN', { n: ops.notBack })}</em> : null}</button>
+      <button type="button" className={'card soon live' + (ops.down || ops.due ? ' warn' : '')} onClick={() => go('machines')}><span>⚙️</span><b>{t('machines')}</b><small className="muted">{ops.machines}</small>{ops.down ? <em className="tag t-a">🔴 {t('downN', { n: ops.down })}</em> : ops.due ? <em className="tag t-amb">⏰ {t('dueN', { n: ops.due })}</em> : null}</button>
+      <div className="card soon"><span>🤝</span><b>{t('help')}</b><small className="muted">{t('helpFamily')}</small><em className="tag t-amb">{t('soon')}</em></div>
+    </section> : null}
   </>);
 }
 
@@ -219,7 +232,7 @@ function Pay({ t, hi, owner }) {
 }
 
 // ---------- Team and sites (owner) ----------
-function Team({ t, hi }) {
+function Team({ t, hi, co }) {
   const [d, load, err] = useLoad('view=team');
   const [site, setSite] = useState({ name: '', address: '' }); const [sup, setSup] = useState(null); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
   if (err) return <p className="err">{err}</p>;
@@ -251,11 +264,12 @@ function Team({ t, hi }) {
         </form> : <button type="button" className="btn btn-dark" style={{ marginTop: 10 }} onClick={() => setSup({ name: '', phone: '', pin: '', sites: [] })}>＋ {t('addSup')}</button>}
       </section>
     </div>
+    <DataCard t={t} co={co} />
   </>);
 }
 
 const CSS = `
-.ap{min-height:100vh;display:grid;grid-template-columns:248px 1fr}
+.ap{min-height:100vh;display:grid;grid-template-columns:248px minmax(0,1fr)}
 .ap-side{background:var(--navy);color:#fff;display:flex;flex-direction:column;padding:18px 14px;position:sticky;top:0;height:100vh;gap:18px}
 .ap-brand{padding:4px 8px 6px}.ap-side nav{display:flex;flex-direction:column;gap:4px}
 .ap-side nav button{display:flex;gap:12px;align-items:center;border:0;background:none;color:#C9D4EA;padding:11px 12px;border-radius:12px;font-weight:600;font-size:15px;cursor:pointer;text-align:left}
@@ -263,7 +277,7 @@ const CSS = `
 .ap-soon{display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:12px;background:rgba(255,255,255,.04);font-size:13px;color:#9FB0D0}.ap-soon small{text-transform:uppercase;letter-spacing:.12em;font-size:10.5px}.ap-soon em{font-style:normal;font-size:10.5px;color:var(--amber);margin-left:4px}
 .ap-me{margin-top:auto;padding:12px;border-top:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column}.ap-me small{color:#9FB0D0}
 .ap-out{border:1px solid rgba(255,255,255,.18);background:none;color:#fff;border-radius:9px;padding:5px 10px;font-size:13px;cursor:pointer}
-.ap-mtop,.ap-bot{display:none}
+.ap-mtop,.ap-bot{display:none}.more-bg{position:fixed;inset:0;z-index:40;background:rgba(11,23,48,.35)}.more{position:fixed;left:10px;right:10px;bottom:70px;background:#fff;border-radius:18px;padding:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px;box-shadow:0 20px 40px -10px rgba(0,0,0,.4)}.more button{display:flex;gap:10px;align-items:center;border:0;background:#F4F6FA;border-radius:12px;padding:14px;font-weight:600;font-size:15px;cursor:pointer;color:var(--ink)}.more button.on{background:var(--amber2)}.more span{font-size:20px}
 .ap-main{padding:26px 28px 60px;max-width:1150px;width:100%}
 .pg-h{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:16px}.pg-h h1{margin:0;font-size:26px;letter-spacing:-.01em}.pg-h p{margin:2px 0 0}
 .alert{background:var(--amber2);border:1px solid #F7D9A0;color:#6B4700;border-radius:14px;padding:11px 14px;font-size:14px;font-weight:600;margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
@@ -275,7 +289,7 @@ const CSS = `
 .chart{width:100%;height:auto;display:block}.legend{display:flex;gap:14px;font-size:12.5px;color:var(--soft)}.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px}
 .srow{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}.srow:last-child{border:0}.srow small{display:block;font-size:12px}
 .sbar{display:flex;height:10px;border-radius:99px;background:#EEF1F6;overflow:hidden}.sbar i{display:block;height:100%}.sbar .p{background:var(--green)}.sbar .h{background:var(--amber)}.sbar .a{background:#F2B8B8}.snum{font-size:14px;color:var(--soft)}
-.soon-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px}.soon{padding:14px;display:flex;flex-direction:column;gap:3px;position:relative;background:#FBFCFE}.soon span{font-size:22px}.soon small{font-size:12.5px}.soon em{position:absolute;top:12px;right:12px;font-style:normal}
+.soon-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px}.soon{padding:14px;display:flex;flex-direction:column;gap:3px;position:relative;background:#FBFCFE;text-align:left;font:inherit;color:inherit}.soon.live{background:#fff;cursor:pointer}.soon.live:hover{border-color:var(--amber)}.soon.warn{border-color:#F6C9C9;background:#FFFBFB}.soon.live em{position:static;align-self:flex-start;margin-top:4px;white-space:normal}.soon span{font-size:22px}.soon small{font-size:12.5px}.soon em{position:absolute;top:12px;right:12px;font-style:normal}
 .bar{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end;margin-bottom:12px}.qd{display:flex;gap:6px}
 .cnt{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
 .alist{display:flex;flex-direction:column;gap:8px;padding-bottom:80px}
@@ -296,7 +310,8 @@ tfoot td{border-top:2px solid var(--line);font-size:14px}
 .inl{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-top:12px}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}.chip{display:flex;gap:6px;align-items:center;border:1.5px solid var(--line);border-radius:99px;padding:6px 12px;font-weight:600;color:var(--ink);cursor:pointer;font-size:13.5px}.chip.on{border-color:var(--amber);background:var(--amber2)}.chip input{display:none}
 @media(max-width:900px){
-  .ap{grid-template-columns:1fr}.ap-side{display:none}
+  .ap-mtop .lsw{max-width:96px}.ap-mtop .ap-out{white-space:nowrap}
+  .ap{grid-template-columns:minmax(0,1fr)}.ap-side{display:none}
   .ap-mtop{display:flex;justify-content:space-between;align-items:center;background:var(--navy);color:#fff;padding:0 14px;height:60px;position:sticky;top:0;z-index:20}
   .ap-bot{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);z-index:30;padding-bottom:env(safe-area-inset-bottom)}
   .ap-bot button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:1px;padding:8px 2px;color:var(--soft);cursor:pointer}.ap-bot span{font-size:19px}.ap-bot small{font-size:11px;font-weight:600}.ap-bot button.on{color:var(--ink);box-shadow:inset 0 3px 0 var(--amber)}
