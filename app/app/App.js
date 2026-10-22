@@ -269,7 +269,7 @@ function Team({ t, hi, co }) {
 }
 
 const CSS = `
-.ap{min-height:100vh;display:grid;grid-template-columns:248px minmax(0,1fr)}
+.ap{min-height:100vh;display:grid;grid-template-columns:248px minmax(0,1fr);align-content:start}
 .ap-side{background:var(--navy);color:#fff;display:flex;flex-direction:column;padding:18px 14px;position:sticky;top:0;height:100vh;gap:18px}
 .ap-brand{padding:4px 8px 6px}.ap-side nav{display:flex;flex-direction:column;gap:4px}
 .ap-side nav button{display:flex;gap:12px;align-items:center;border:0;background:none;color:#C9D4EA;padding:11px 12px;border-radius:12px;font-weight:600;font-size:15px;cursor:pointer;text-align:left}

@@ -33,6 +33,7 @@ export function Stock({ t, lang, co }) {
   const csv = () => downloadCsv('nsyad-stock-' + d.today + '.csv', ['Code', 'Name', 'Unit', 'Category', 'Rack', ...d.sites.map((x) => x.name), 'Total', 'Min', 'Rate', 'Value', 'Barcode'], d.items.map((i) => [i.code, i.name, i.unit, i.category, i.location, ...i.per.map((p) => p.qty), i.per.reduce((a, p) => a + p.qty, 0), i.min_qty, i.rate, Math.round(i.per.reduce((a, p) => a + p.qty, 0) * i.rate * 100) / 100, i.barcode]));
   const pp = paste ? parsePaste(paste.text) : null;
   return (<>
+    <div className="hero-img" style={{ backgroundImage: 'url(/img/stock-sm.webp)' }} />
     <div className="pg-h"><div><h1>📦 {t('stock')}</h1><p className="muted">{d.items.filter((i) => i.active).length} {t('items')}</p></div>
       <div className="tb2"><button type="button" className="btn btn-main" onClick={() => { setF({ unit: 'pcs', site_id: defSite }); setMv(null); setPaste(null); setMsg(''); }}>＋ {t('addItem')}</button></div></div>
     <div className="bar2">
@@ -124,6 +125,7 @@ export function Gate({ t, lang, co, openToken }) {
   const addLine = () => setF({ ...f, lines: [...f.lines, { item_id: '', name: '', qty: '', unit: '' }] });
   const setLine = (i, patch) => setF({ ...f, lines: f.lines.map((l, j) => (j === i ? { ...l, ...patch } : l)) });
   return (<>
+    <div className="hero-img" style={{ backgroundImage: 'url(/img/gate-sm.webp)' }} />
     <div className="pg-h"><div><h1>🚚 {t('gate')}</h1></div><div className="tb2"><button type="button" className="btn btn-ghost" onClick={() => setScan(true)}>📷 {t('scan')}</button><button type="button" className="btn btn-main" onClick={() => { setF({ kind: 'out_ret', site_id: d.sites[0] && d.sites[0].id, party: '', phone: '', vehicle: '', purpose: '', expected: '', lines: [{ item_id: '', name: '', qty: '', unit: '' }] }); setMsg(''); setHl(''); }}>＋ {t('newPass')}</button></div></div>
     {msg ? <p className="err">{msg}</p> : null}
     {f ? <form className="card pad form" onSubmit={(e) => { e.preventDefault(); act({ action: 'pass_save', ...f, lines: material(f.kind) ? f.lines : [] }, (r) => { setF(null); if (r.pass) setHl(r.pass.token); }); }}>
@@ -175,6 +177,7 @@ export function Machines({ t, lang, co }) {
   const act = async (body, after) => { setBusy(true); setMsg(''); try { await post(body); after && after(); load(); } catch (x) { setMsg(x.message); } setBusy(false); };
   const sorted = [...d.machines].sort((a, b) => (b.status === 'down') - (a.status === 'down') || (b.overdue - a.overdue) || a.code.localeCompare(b.code));
   return (<>
+    <div className="hero-img" style={{ backgroundImage: 'url(/img/machines-sm.webp)' }} />
     <div className="pg-h"><div><h1>⚙️ {t('machines')}</h1><p className="muted">{d.machines.filter((m) => m.status === 'down').length} {t('down')} · {d.machines.filter((m) => m.overdue).length} {t('overdue')}</p></div>
       <button type="button" className="btn btn-main" onClick={() => { setF({ site_id: d.sites[0] && d.sites[0].id, every_days: '90' }); setLg(null); setMsg(''); }}>＋ {t('addMachine')}</button></div>
     {msg ? <p className="err">{msg}</p> : null}
@@ -232,6 +235,7 @@ export function DataCard({ t, co }) {
 }
 
 const OPS_CSS = `
+.hero-img{height:150px;border-radius:18px;background:center/cover no-repeat #0B1730;margin-bottom:14px;box-shadow:0 10px 30px -18px rgba(11,23,48,.6)}@media(min-width:900px){.hero-img{height:190px}}
 .form{min-width:0}.form>*{min-width:0;max-width:100%}
 .tb2{display:flex;gap:8px;flex-wrap:wrap}.bar2{display:grid;grid-template-columns:220px 1fr;gap:10px;margin-bottom:8px}.tools2{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
 .big{font-size:22px;font-weight:700}.mvh{display:flex;gap:12px;align-items:center}.mvh h2{margin:0}
