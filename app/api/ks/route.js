@@ -44,7 +44,7 @@ export async function GET(req) {
   if (!me) return fail('login', 401);
   const q = new URL(req.url).searchParams, view = q.get('view');
   const todayIST = () => todayIn(me.co.tz);
-  const co = { name: me.co.name, currency: me.co.currency || 'INR', cc: me.co.cc || '91', country: me.co.country || 'IN' };
+  const co = { name: me.co.name, currency: me.co.currency || 'INR', cc: me.co.cc || '91', country: me.co.country || 'IN', focus: me.co.focus || 'att' };
   try {
     if (me.role === 'worker' || view === 'me') {
       if (!me.worker_id) return fail('No worker record.', 404);
@@ -119,6 +119,12 @@ export async function POST(req) {
     const sc = await scope(me);
     const myWorker = async (id) => { const w = (await db('ks_workers?id=eq.' + enc(uuid(id) || '00000000-0000-0000-0000-000000000000') + '&company_id=eq.' + sc.cid + '&select=*'))[0]; if (!w) return null; if (!owner && !sc.ids.includes(w.site_id)) return null; return w; };
     switch (b.action) {
+      case 'company_focus': {
+        if (!owner) return fail('Only the owner can change this.', 403);
+        if (!['att', 'stock', 'gate', 'machines'].includes(b.focus)) return fail('Choose one.');
+        await db('ks_companies?id=eq.' + enc(me.company_id), { method: 'PATCH', body: { focus: b.focus } });
+        break;
+      }
       case 'site_add': {
         if (!owner) return fail('Only the owner can add sites.', 403);
         const name = s(b.name, 60); if (!name) return fail('Please write the site name.');

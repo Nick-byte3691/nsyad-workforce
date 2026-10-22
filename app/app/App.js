@@ -16,7 +16,9 @@ const dayLabel = (d) => { try { return new Date(d + 'T12:00:00Z').toLocaleDateSt
 const shift = (d, n) => { const t = new Date(d + 'T12:00:00Z'); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); };
 
 const TABS = [['dash', '📊'], ['att', '🕘'], ['workers', '👷'], ['pay', '💰'], ['stock', '📦'], ['gate', '🚚'], ['machines', '⚙️'], ['team', '🏗️']];
-const BOTTOM = ['dash', 'att', 'stock', 'gate']; // phone: the rest is under ☰ More
+// Phone bottom bar: the company's main work comes first; the rest is under ☰ More.
+const BOTTOM_BY = { att: ['dash', 'att', 'workers', 'pay'], stock: ['dash', 'stock', 'gate', 'att'], gate: ['dash', 'gate', 'stock', 'att'], machines: ['dash', 'machines', 'stock', 'att'] };
+const ORDER_BY = { att: ['dash', 'att', 'workers', 'pay', 'stock', 'gate', 'machines', 'team'], stock: ['dash', 'stock', 'gate', 'machines', 'att', 'workers', 'pay', 'team'], gate: ['dash', 'gate', 'stock', 'machines', 'att', 'workers', 'pay', 'team'], machines: ['dash', 'machines', 'stock', 'gate', 'att', 'workers', 'pay', 'team'] };
 
 export default function App() {
   const L = useLang(); const { t, lang, locale } = L; const hi = lang === 'hi'; LOC = locale;
@@ -25,9 +27,11 @@ export default function App() {
   useEffect(() => { const h = window.location.hash.slice(1); if (TABS.some(([k]) => k === h)) setTab(h);
     // A printed gate pass QR opens /app?pass=… → straight to that pass.
     const pt = new URLSearchParams(window.location.search).get('pass'); if (pt && /^[a-f0-9]{24}$/.test(pt)) { setPassTok(pt); setTab('gate'); window.history.replaceState(null, '', '/app#gate'); } get('view=base').then((b) => { if (b) { CUR = (b.co && b.co.currency) || 'INR'; TODAY = b.today || ''; } setBase(b); }).catch(() => {}); }, []);
+  const focus = (base && base.co && BOTTOM_BY[base.co.focus] ? base.co.focus : 'att');
+  const BOTTOM = BOTTOM_BY[focus];
   const go = (k) => { setTab(k); setMore(false); window.history.replaceState(null, '', '#' + k); window.scrollTo(0, 0); };
   const owner = base && base.me.role === 'owner';
-  const tabs = TABS.filter(([k]) => k !== 'team' || owner);
+  const tabs = ORDER_BY[focus].map((k) => TABS.find((x) => x[0] === k)).filter(([k]) => k !== 'team' || owner);
   const logout = async () => { await fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"action":"logout"}' }); window.location.href = '/login'; };
   return (
     <div className="ap">
@@ -39,7 +43,7 @@ export default function App() {
       </aside>
       <header className="ap-mtop"><Brand light /><div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><LangSwitch {...L} /><button type="button" className="ap-out" onClick={logout}>{t('logout')}</button></div></header>
       <main className="ap-main">
-        {!base ? <p className="muted">{t('loading')}</p> : tab === 'dash' ? <Dash t={t} hi={hi} go={go} owner={owner} /> : tab === 'att' ? <Att t={t} hi={hi} /> : tab === 'workers' ? <Workers t={t} hi={hi} owner={owner} /> : tab === 'pay' ? <Pay t={t} hi={hi} owner={owner} /> : tab === 'stock' ? <Stock t={t} lang={lang} co={base.co} /> : tab === 'gate' ? <Gate t={t} lang={lang} co={base.co} openToken={passTok} /> : tab === 'machines' ? <Machines t={t} lang={lang} co={base.co} /> : <Team t={t} hi={hi} co={base.co} />}
+        {!base ? <p className="muted">{t('loading')}</p> : tab === 'dash' ? <Dash t={t} hi={hi} go={go} owner={owner} focus={focus} /> : tab === 'att' ? <Att t={t} hi={hi} /> : tab === 'workers' ? <Workers t={t} hi={hi} owner={owner} /> : tab === 'pay' ? <Pay t={t} hi={hi} owner={owner} /> : tab === 'stock' ? <Stock t={t} lang={lang} co={base.co} /> : tab === 'gate' ? <Gate t={t} lang={lang} co={base.co} openToken={passTok} /> : tab === 'machines' ? <Machines t={t} lang={lang} co={base.co} /> : <Team t={t} hi={hi} co={base.co} onFocus={(fo) => setBase({ ...base, co: { ...base.co, focus: fo } })} />}
       </main>
       <nav className="ap-bot">{tabs.filter(([k]) => BOTTOM.includes(k)).map(([k, i]) => <button key={k} type="button" className={tab === k ? 'on' : ''} onClick={() => go(k)}><span>{i}</span><small>{t(k)}</small></button>)}
         <button type="button" className={!BOTTOM.includes(tab) || more ? 'on' : ''} onClick={() => setMore(!more)}><span>☰</span><small>{t('more')}</small></button></nav>
@@ -57,17 +61,25 @@ function useLoad(q) {
 }
 
 // ---------- Dashboard ----------
-function Dash({ t, hi, go, owner }) {
+function Dash({ t, hi, go, owner, focus }) {
   const [d, , err] = useLoad('view=dash');
   const [ops, setOps] = useState(null);
   useEffect(() => { fetch('/api/ops?view=summary', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then(setOps).catch(() => {}); }, []);
   if (err) return <p className="err">{err}</p>;
   if (!d) return <p className="muted">{t('loading')}</p>;
-  const max = Math.max(1, ...d.days.map((x) => x.p + x.h + x.a));
+  const max0 = Math.max(2, ...d.days.map((x) => x.p + x.h + x.a)); const max = max0 % 2 ? max0 + 1 : max0; // even, so the middle line is a whole number
   return (<>
-    <div className="pg-h"><div><h1>{t('dash')}</h1><p className="muted">{dayLabel(d.today)} · {d.sites.length} {t('sites')}</p></div><button type="button" className="btn btn-main" onClick={() => go('att')}>🕘 {t('markNow')}</button></div>
+    <div className="pg-h"><div><h1>{t('dash')}</h1><p className="muted">{dayLabel(d.today)} · {d.sites.length} {t('sites')}</p></div>{focus === 'att' ? <button type="button" className="btn btn-main" onClick={() => go('att')}>🕘 {t('markNow')}</button> : <button type="button" className="btn btn-main" onClick={() => go(focus)}>{{ stock: '📦', gate: '🚚', machines: '⚙️' }[focus]} {t(focus)}</button>}</div>
     {d.unmarked > 0 && d.workers > 0 ? <div className="alert">⏳ {t('unmarkedN', { n: d.unmarked })} <button type="button" className="link" onClick={() => go('att')}>{t('markNow')} →</button></div> : null}
     {owner && d.noWage > 0 ? <div className="alert">💰 {t('noWageN', { n: d.noWage })} <button type="button" className="link" onClick={() => go('workers')}>{t('workers')} →</button></div> : null}
+    {focus !== 'att' ? <div className="ops-first">
+    {ops ? <section className="soon-row">
+      <button type="button" className={'card soon live' + (ops.low ? ' warn' : '')} onClick={() => go('stock')}><span>📦</span><b>{t('stock')}</b><small className="muted">{ops.items} {t('items')}</small>{ops.low ? <em className="tag t-a">⚠️ {t('lowN', { n: ops.low })}</em> : null}</button>
+      <button type="button" className={'card soon live' + (ops.notBack ? ' warn' : '')} onClick={() => go('gate')}><span>🚚</span><b>{t('gate')}</b><small className="muted">{t('passesOpen')}: {ops.passesOpen}</small>{ops.notBack ? <em className="tag t-a">⏰ {t('notBackN', { n: ops.notBack })}</em> : null}</button>
+      <button type="button" className={'card soon live' + (ops.down || ops.due ? ' warn' : '')} onClick={() => go('machines')}><span>⚙️</span><b>{t('machines')}</b><small className="muted">{ops.machines}</small>{ops.down ? <em className="tag t-a">🔴 {t('downN', { n: ops.down })}</em> : ops.due ? <em className="tag t-amb">⏰ {t('dueN', { n: ops.due })}</em> : null}</button>
+      <div className="card soon"><span>🤝</span><b>{t('help')}</b><small className="muted">{t('helpFamily')}</small><em className="tag t-amb">{t('soon')}</em></div>
+    </section> : null}
+    </div> : null}
     <div className="kpis">
       <div className="card kpi"><small>{t('totalWorkers')}</small><b>{d.workers}</b></div>
       <div className="card kpi g"><small>{t('present')} · {t('today')}</small><b>{d.present}{d.half ? <em> +{d.half} ½</em> : null}</b><i style={{ width: (d.workers ? (d.present + d.half / 2) / d.workers * 100 : 0) + '%' }} /></div>
@@ -92,12 +104,15 @@ function Dash({ t, hi, go, owner }) {
             <span className="snum"><b className="ok">{s.p}</b>/{s.workers}</span></div>)) : <p className="muted">{t('noSites')}</p>}
       </section>
     </div>
+
+    {focus === 'att' ? <>
     {ops ? <section className="soon-row">
       <button type="button" className={'card soon live' + (ops.low ? ' warn' : '')} onClick={() => go('stock')}><span>📦</span><b>{t('stock')}</b><small className="muted">{ops.items} {t('items')}</small>{ops.low ? <em className="tag t-a">⚠️ {t('lowN', { n: ops.low })}</em> : null}</button>
       <button type="button" className={'card soon live' + (ops.notBack ? ' warn' : '')} onClick={() => go('gate')}><span>🚚</span><b>{t('gate')}</b><small className="muted">{t('passesOpen')}: {ops.passesOpen}</small>{ops.notBack ? <em className="tag t-a">⏰ {t('notBackN', { n: ops.notBack })}</em> : null}</button>
       <button type="button" className={'card soon live' + (ops.down || ops.due ? ' warn' : '')} onClick={() => go('machines')}><span>⚙️</span><b>{t('machines')}</b><small className="muted">{ops.machines}</small>{ops.down ? <em className="tag t-a">🔴 {t('downN', { n: ops.down })}</em> : ops.due ? <em className="tag t-amb">⏰ {t('dueN', { n: ops.due })}</em> : null}</button>
       <div className="card soon"><span>🤝</span><b>{t('help')}</b><small className="muted">{t('helpFamily')}</small><em className="tag t-amb">{t('soon')}</em></div>
     </section> : null}
+    </> : null}
   </>);
 }
 
@@ -232,7 +247,7 @@ function Pay({ t, hi, owner }) {
 }
 
 // ---------- Team and sites (owner) ----------
-function Team({ t, hi, co }) {
+function Team({ t, hi, co, onFocus }) {
   const [d, load, err] = useLoad('view=team');
   const [site, setSite] = useState({ name: '', address: '' }); const [sup, setSup] = useState(null); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
   if (err) return <p className="err">{err}</p>;
@@ -264,6 +279,8 @@ function Team({ t, hi, co }) {
         </form> : <button type="button" className="btn btn-dark" style={{ marginTop: 10 }} onClick={() => setSup({ name: '', phone: '', pin: '', sites: [] })}>＋ {t('addSup')}</button>}
       </section>
     </div>
+    <section className="card pad" style={{ marginTop: 12 }}><h2>⭐ {t('mainWork')}</h2><p className="muted" style={{ marginTop: 0 }}>{t('mainWorkNote')}</p>
+      <div className="chips">{['att', 'stock', 'gate', 'machines'].map((k) => <button key={k} type="button" className={'chip' + (co.focus === k ? ' on' : '')} disabled={busy} onClick={() => act({ action: 'company_focus', focus: k }, () => onFocus(k))}>{{ att: '👷', stock: '📦', gate: '🚚', machines: '⚙️' }[k]} {t('f_' + k)}</button>)}</div></section>
     <DataCard t={t} co={co} />
   </>);
 }
@@ -308,7 +325,7 @@ const CSS = `
 tfoot td{border-top:2px solid var(--line);font-size:14px}
 .trow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}.trow small{display:block;font-size:12.5px}
 .inl{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-top:12px}
-.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}.chip{display:flex;gap:6px;align-items:center;border:1.5px solid var(--line);border-radius:99px;padding:6px 12px;font-weight:600;color:var(--ink);cursor:pointer;font-size:13.5px}.chip.on{border-color:var(--amber);background:var(--amber2)}.chip input{display:none}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}.chip{display:flex;gap:6px;align-items:center;border:1.5px solid var(--line);border-radius:99px;padding:6px 12px;font-weight:600;color:var(--ink);cursor:pointer;font-size:13.5px}.chip{background:#fff}.chip.on{border-color:var(--amber);background:var(--amber2)}.ops-first .soon-row{margin:0 0 12px}.chip input{display:none}
 @media(max-width:900px){
   .ap-mtop .lsw{max-width:96px}.ap-mtop .ap-out{white-space:nowrap}
   .ap{grid-template-columns:minmax(0,1fr)}.ap-side{display:none}
