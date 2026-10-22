@@ -38,7 +38,7 @@ export default function App() {
       <aside className="ap-side">
         <div className="ap-brand"><Brand light /></div>
         <nav>{tabs.map(([k, i]) => <button key={k} type="button" className={tab === k ? 'on' : ''} onClick={() => go(k)}><span>{i}</span>{t(k)}</button>)}</nav>
-        <div className="ap-soon"><small>{t('more')}</small><span>🤝 {t('help')} <em>{t('soon')}</em></span></div>
+        <div className="ap-soon"><small>{t('soon')}</small><span>🛒 {t('market')}</span><span>🤝 {t('help')}</span></div>
         <div className="ap-me">{base ? <><b>{base.me.name}</b><small>{t(base.me.role)}</small></> : null}<div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}><LangSwitch {...L} /><button type="button" className="ap-out" onClick={logout}>{t('logout')}</button></div></div>
       </aside>
       <header className="ap-mtop"><Brand light /><div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><LangSwitch {...L} /><button type="button" className="ap-out" onClick={logout}>{t('logout')}</button></div></header>
@@ -47,7 +47,7 @@ export default function App() {
       </main>
       <nav className="ap-bot">{tabs.filter(([k]) => BOTTOM.includes(k)).map(([k, i]) => <button key={k} type="button" className={tab === k ? 'on' : ''} onClick={() => go(k)}><span>{i}</span><small>{t(k)}</small></button>)}
         <button type="button" className={!BOTTOM.includes(tab) || more ? 'on' : ''} onClick={() => setMore(!more)}><span>☰</span><small>{t('more')}</small></button></nav>
-      {more ? <div className="more-bg" onClick={() => setMore(false)}><div className="more" onClick={(e) => e.stopPropagation()}>{tabs.filter(([k]) => !BOTTOM.includes(k)).map(([k, i]) => <button key={k} type="button" className={tab === k ? 'on' : ''} onClick={() => go(k)}><span>{i}</span>{t(k)}</button>)}</div></div> : null}
+      {more ? <div className="more-bg" onClick={() => setMore(false)}><div className="more" onClick={(e) => e.stopPropagation()}>{tabs.filter(([k]) => !BOTTOM.includes(k)).map(([k, i]) => <button key={k} type="button" className={tab === k ? 'on' : ''} onClick={() => go(k)}><span>{i}</span>{t(k)}</button>)}<button type="button" className="soonb" disabled><span>🛒</span>{t('market')}<em>{t('soon')}</em></button></div></div> : null}
       <style>{CSS}</style>
     </div>
   );
@@ -294,7 +294,7 @@ const CSS = `
 .ap-soon{display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:12px;background:rgba(255,255,255,.04);font-size:13px;color:#9FB0D0}.ap-soon small{text-transform:uppercase;letter-spacing:.12em;font-size:10.5px}.ap-soon em{font-style:normal;font-size:10.5px;color:var(--amber);margin-left:4px}
 .ap-me{margin-top:auto;padding:12px;border-top:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column}.ap-me small{color:#9FB0D0}
 .ap-out{border:1px solid rgba(255,255,255,.18);background:none;color:#fff;border-radius:9px;padding:5px 10px;font-size:13px;cursor:pointer}
-.ap-mtop,.ap-bot{display:none}.more-bg{position:fixed;inset:0;z-index:40;background:rgba(11,23,48,.35)}.more{position:fixed;left:10px;right:10px;bottom:70px;background:#fff;border-radius:18px;padding:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px;box-shadow:0 20px 40px -10px rgba(0,0,0,.4)}.more button{display:flex;gap:10px;align-items:center;border:0;background:#F4F6FA;border-radius:12px;padding:14px;font-weight:600;font-size:15px;cursor:pointer;color:var(--ink)}.more button.on{background:var(--amber2)}.more span{font-size:20px}
+.ap-mtop,.ap-bot{display:none}.more-bg{position:fixed;inset:0;z-index:40;background:rgba(11,23,48,.35)}.more{position:fixed;left:10px;right:10px;bottom:70px;background:#fff;border-radius:18px;padding:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px;box-shadow:0 20px 40px -10px rgba(0,0,0,.4)}.more button{display:flex;gap:10px;align-items:center;border:0;background:#F4F6FA;border-radius:12px;padding:14px;font-weight:600;font-size:15px;cursor:pointer;color:var(--ink)}.more button.on{background:var(--amber2)}.more span{font-size:20px}.more .soonb{opacity:.7;flex-wrap:wrap}.more .soonb em{font-style:normal;font-size:11px;color:#8A5A00;width:100%;padding-left:30px}
 .ap-main{padding:26px 28px 60px;max-width:1150px;width:100%}
 .pg-h{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:16px}.pg-h h1{margin:0;font-size:26px;letter-spacing:-.01em}.pg-h p{margin:2px 0 0}
 .alert{background:var(--amber2);border:1px solid #F7D9A0;color:#6B4700;border-radius:14px;padding:11px 14px;font-size:14px;font-weight:600;margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}

@@ -14,8 +14,8 @@ export function Brand({ light }) {
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9, color: light ? '#fff' : 'var(--ink)' }}>
       <Mark />
       <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.05 }}>
-        <b style={{ fontSize: 19, letterSpacing: '.06em', fontWeight: 700 }}>NSYAD</b>
-        <small style={{ fontSize: 11, letterSpacing: '.18em', fontWeight: 600, color: light ? '#F5B700' : '#8A5A00', textTransform: 'uppercase' }}>Workforce</small>
+        <b style={{ fontSize: 20, letterSpacing: '.12em', fontWeight: 800 }}>NSYAD</b>
+        <small className="bt" style={{ fontSize: 8.5, letterSpacing: '.14em', fontWeight: 700, color: light ? '#F5B700' : '#8A5A00', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Honesty · Power · Discipline</small>
       </span>
     </span>
   );

@@ -4,14 +4,14 @@ import { Brand } from './Brand';
 import { useLang, LangSwitch } from '../lib/i18n';
 
 // Photos that exist in /public/img (the rest show only their icon until a photo is added).
-const HAVE = ['stock', 'gate', 'machines', 'workers'];
+const HAVE = ['stock', 'gate', 'machines', 'workers', 'f-att', 'f-wages', 'f-owner', 'f-super', 'f-worker', 'f-safe'];
 export default function Landing() {
   const L = useLang(); const { t } = L;
   // Each card opens sign-up (or login) with that work first: [icon, text key, main work, photo]
   const F = [['🕘', 'f1', 'att', 'f-att'], ['💰', 'f2', 'att', 'f-wages'], ['📊', 'f3', 'att', 'f-owner'], ['🧑‍🔧', 'f4', 'att', 'f-super'], ['📱', 'f5', 'att', 'f-worker'], ['🔒', 'f6', 'att', 'f-safe']];
   const PIC = (n) => (HAVE.includes(n) ? '/img/' + n + '-sm.webp' : null);
   const LIVE = [['📦', 'stock', 'godownSub', 'stock'], ['🚚', 'gate', 'gateSub', 'gate'], ['⚙️', 'machines', 'machinesSub', 'machines'], ['🎤', 'voice', 'pasteExcel']];
-  const SOON = [['🤝', 'help', 'helpFamily']];
+  const SOON = [['🛒', 'market', 'marketSub'], ['🤝', 'help', 'helpFamily']];
   return (
     <main>
       <header className="lp-top"><div className="lp-w"><Brand light /><nav style={{ display: 'flex', gap: 8, alignItems: 'center' }}><LangSwitch {...L} /><Link href="/login" className="btn btn-ghost btn-sm">{t('login')}</Link></nav></div></header>

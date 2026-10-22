@@ -15,7 +15,7 @@ export async function GET(req) {
   catch { return NextResponse.json({ me: null }); }
 }
 export async function POST(req) {
-  if (!dbReady() || !secretOk()) return fail('NSYAD Workforce is being set up. Please try again soon.', 503);
+  if (!dbReady() || !secretOk()) return fail('NSYAD is being set up. Please try again soon.', 503);
   const b = await req.json().catch(() => ({}));
   if (b.action === 'logout') { const r = NextResponse.json({ ok: true }); r.cookies.set(COOKIE, '', { path: '/', maxAge: 0 }); return r; }
   const country = countryOf(b.country);

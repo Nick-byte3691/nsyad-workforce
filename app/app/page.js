@@ -1,3 +1,3 @@
 import App from './App';
-export const metadata = { title: 'NSYAD Workforce' };
+export const metadata = { title: 'NSYAD' };
 export default function P() { return <App />; }

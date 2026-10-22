@@ -15,3 +15,5 @@ a{color:inherit}button,input,select,textarea{font:inherit;color:inherit}
 .t-p{background:var(--green2);color:var(--green)}.t-a{background:var(--red2);color:var(--red)}.t-h{background:var(--half2);color:var(--half)}.t-n{background:#EEF1F6;color:var(--soft)}.t-amb{background:var(--amber2);color:#8A5A00}
 table.tb{width:100%;border-collapse:collapse;font-size:14px}.tb th{text-align:left;font-size:12px;color:var(--soft);font-weight:600;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}.tb td{padding:10px;border-bottom:1px solid var(--line);vertical-align:middle}
 .tb .r{text-align:right}.scroll{overflow-x:auto}
+
+@media(max-width:480px){.lp-top nav .btn{display:none}.lp-top .lsw{max-width:110px}.ap-mtop .bt{display:none}}
